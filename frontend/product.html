@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Market · Proyecto</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="navbar glass">
+  <a class="brand" href="index.html"><span class="dot"></span> 3D Market</a>
+  <button class="menu-toggle" aria-label="Menú">☰</button>
+  <nav>
+    <a href="index.html">Inicio</a>
+    <a href="publish.html">Publicar</a>
+    <a href="donate.html">Donar</a>
+    <a href="login.html" id="navLoginLink">Iniciar sesión</a>
+    <span id="navUserMenu" style="display:none; align-items:center; gap:8px;">
+      <span id="navUserName" style="opacity:.85;"></span>
+      <button id="navLogoutBtn">Salir</button>
+    </span>
+  </nav>
+</header>
+
+<main class="container">
+  <div id="productDetail" style="margin-top:20px;">Cargando...</div>
+</main>
+
+<!-- Modal de cotización (reutilizado) -->
+<div class="modal-overlay" id="quoteModalOverlay">
+  <div class="modal glass">
+    <button class="modal-close" id="quoteModalClose">✕</button>
+    <h2>Cotizar proyecto</h2>
+    <p class="subtitle" id="quoteProductTitle"></p>
+    <form id="quoteForm">
+      <input type="hidden" id="quoteProductId">
+      <div class="field">
+        <label>Nombre completo</label>
+        <input id="quoteName" required>
+      </div>
+      <div class="field">
+        <label>Teléfono</label>
+        <input id="quotePhone" required>
+      </div>
+      <div class="field">
+        <label>Tipo de entrega</label>
+        <select id="quoteDeliveryType" style="width:100%; padding:12px; border-radius:8px; background:rgba(255,255,255,0.05); color:#fff; border:1px solid var(--glass-border);">
+          <option value="local_chalco">Entrega local (Centro de Chalco, EDOMEX) — sin costo</option>
+          <option value="envio">Envío a domicilio — costo adicional</option>
+        </select>
+      </div>
+      <div class="field" id="quoteAddressField" style="display:none;">
+        <label>Dirección de envío</label>
+        <input id="quoteAddress" placeholder="Calle, número, colonia, ciudad">
+      </div>
+      <button class="btn block" type="submit">Enviar cotización</button>
+      <div class="form-msg" id="quoteMsg"></div>
+      <a class="btn secondary block" id="quoteWhatsappLink" style="display:none; margin-top:10px;" target="_blank" rel="noopener">Confirmar por WhatsApp</a>
+    </form>
+  </div>
+</div>
+
+<button class="chat-fab" id="chatFab">🤖</button>
+<div class="chat-window glass" id="chatWindow">
+  <div class="chat-header">🤖 Asistente 3D Market <button id="chatClose" style="margin-left:auto; background:none; border:none; color:var(--text-muted); cursor:pointer;">✕</button></div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-input">
+    <input id="chatInput" placeholder="Escribe tu pregunta...">
+    <button id="chatSend">➤</button>
+  </div>
+</div>
+
+<a class="whatsapp-fab" id="whatsappFab" target="_blank" rel="noopener" aria-label="WhatsApp">📱</a>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/app.js"></script>
+<script src="js/product.js"></script>
+<script src="js/chatbot.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Market · Donar</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="navbar glass">
+  <a class="brand" href="index.html"><span class="dot"></span> 3D Market</a>
+  <button class="menu-toggle" aria-label="Menú">☰</button>
+  <nav>
+    <a href="index.html">Inicio</a>
+    <a href="publish.html">Publicar</a>
+    <a href="donate.html" class="active">Donar</a>
+    <a href="login.html" id="navLoginLink">Iniciar sesión</a>
+    <span id="navUserMenu" style="display:none; align-items:center; gap:8px;">
+      <span id="navUserName" style="opacity:.85;"></span>
+      <button id="navLogoutBtn">Salir</button>
+    </span>
+  </nav>
+</header>
+
+<main class="container">
+  <h1 class="page-title">Apoya a 3D Market</h1>
+  <p class="page-subtitle">Tu donación ayuda a que sigamos creando e imprimiendo proyectos increíbles.</p>
+
+  <form id="donateForm" class="glass" style="max-width:460px; padding:26px;">
+    <div class="field">
+      <label>Nombre (opcional)</label>
+      <input id="donorName" placeholder="Anónimo">
+    </div>
+    <div class="field">
+      <label>Monto a donar (MXN)</label>
+      <input id="donateAmount" type="number" min="1" step="0.01" required>
+    </div>
+    <div class="field">
+      <label>Mensaje (opcional)</label>
+      <input id="donateMessage" placeholder="¡Sigan así!">
+    </div>
+    <button class="btn block" type="submit">Donar</button>
+    <div class="form-msg" id="donateMsg"></div>
+    <p style="font-size:0.8rem; color:var(--text-muted); margin-top:14px;">
+      Nota: por ahora solo registramos tu intención de donar; te contactaremos para completar el pago de forma segura.
+    </p>
+  </form>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/donate.js"></script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Market · Publicar proyecto</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="navbar glass">
+  <a class="brand" href="index.html"><span class="dot"></span> 3D Market</a>
+  <button class="menu-toggle" aria-label="Menú">☰</button>
+  <nav>
+    <a href="index.html">Inicio</a>
+    <a href="publish.html" class="active">Publicar</a>
+    <a href="donate.html">Donar</a>
+    <a href="login.html" id="navLoginLink">Iniciar sesión</a>
+    <span id="navUserMenu" style="display:none; align-items:center; gap:8px;">
+      <span id="navUserName" style="opacity:.85;"></span>
+      <button id="navLogoutBtn">Salir</button>
+    </span>
+  </nav>
+</header>
+
+<main class="container">
+  <h1 class="page-title">Publica tu proyecto 3D</h1>
+  <p class="page-subtitle">Comparte tu diseño, define el precio y si aplica envío o solo entrega local.</p>
+
+  <form id="publishForm" class="glass" style="max-width:560px; padding:26px;">
+    <div class="field">
+      <label>Título</label>
+      <input id="pubTitle" required>
+    </div>
+    <div class="field">
+      <label>Descripción</label>
+      <input id="pubDescription">
+    </div>
+    <div class="field">
+      <label>URL de la imagen</label>
+      <input id="pubImageUrl" type="url" required placeholder="https://...">
+    </div>
+    <div class="field">
+      <label>Precio base (MXN, sin IVA)</label>
+      <input id="pubPrice" type="number" min="0" step="0.01" required>
+    </div>
+    <div class="field" style="display:flex; align-items:center; gap:10px;">
+      <input type="checkbox" id="pubLocalOnly" style="width:auto;">
+      <label style="margin:0;">Solo entrega local (Centro de Chalco, EDOMEX) — sin envío</label>
+    </div>
+    <div class="field" id="pubShippingField">
+      <label>Costo de envío (MXN)</label>
+      <input id="pubShipping" type="number" min="0" step="0.01" value="0">
+    </div>
+    <button class="btn block" type="submit">Publicar proyecto</button>
+    <div class="form-msg" id="publishMsg"></div>
+  </form>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/common.js"></script>
+<script src="js/publish.js"></script>
+</body>
+</html>
