@@ -7,7 +7,6 @@ const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const donationRoutes = require('./routes/donations');
 const quoteRoutes = require('./routes/quotes');
-const chatbotRoutes = require('./routes/chatbot');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
@@ -22,7 +21,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/quotes', quoteRoutes);
-app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Sirve el frontend estático desde el mismo servicio (útil en Render con un solo Web Service)
