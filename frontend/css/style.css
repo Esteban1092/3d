@@ -594,6 +594,9 @@ img { max-width: 100%; display: block; }
   font-size: 0.85rem;
 }
 .footer a { color: var(--bg-glow-1); }
+.social-links { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+.social-links a { transition: color var(--transition), transform var(--transition); }
+.social-links a:hover { color: var(--bg-glow-2); transform: translateY(-2px); }
 
 /* ---------------------------------------------------------
    Responsive
