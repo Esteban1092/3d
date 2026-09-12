@@ -65,21 +65,32 @@ router.post('/register', authLimiter, async (req, res) => {
 
     const token = uuidv4();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24h
-    const { error: verifErr } = await supabase
+    const { data: verification, error: verifErr } = await supabase
       .from('email_verifications')
-      .insert({ user_id: newUser.id, token, expires_at: expiresAt });
+      .insert({ user_id: newUser.id, token, expires_at: expiresAt })
+      .select('id')
+      .single();
     if (verifErr) throw verifErr;
 
     const link = `${process.env.FRONTEND_URL}/verify-email.html?token=${token}`;
-    await sendMail({
-      to: email,
-      subject: 'Verifica tu correo - 3D Market',
-      html: verificationEmailHtml(name, link)
-    });
+    try {
+      await sendMail({
+        to: email,
+        subject: 'Verifica tu correo - 3D Market',
+        html: verificationEmailHtml(name, link)
+      });
+    } catch (mailError) {
+      await supabase.from('email_verifications').delete().eq('id', verification.id);
+      await supabase.from('users').delete().eq('id', newUser.id);
+      throw mailError;
+    }
 
     res.status(201).json({ message: 'Cuenta creada. Revisa tu correo para verificarla.' });
   } catch (err) {
     console.error(err);
+    if (err.code === 'MAIL_NOT_CONFIGURED' || err.code === 'EAUTH' || err.responseCode === 535) {
+      return res.status(503).json({ error: 'Gmail no está configurado correctamente en Render. Revisa GMAIL_USER y GMAIL_APP_PASSWORD.' });
+    }
     res.status(500).json({ error: 'Error al registrar el usuario.' });
   }
 });
@@ -184,6 +195,9 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
     console.error(err);
     if (err.code === 'MAIL_NOT_CONFIGURED' || err.code === 'EAUTH') {
       return res.status(503).json({ error: 'El correo no está configurado en el servidor. Agrega GMAIL_USER y GMAIL_APP_PASSWORD en Render.' });
+    }
+    if (err.responseCode === 535) {
+      return res.status(503).json({ error: 'Gmail rechazó las credenciales. Genera una nueva contraseña de aplicación y actualiza Render.' });
     }
     res.status(500).json({ error: 'Error al procesar la solicitud.' });
   }
