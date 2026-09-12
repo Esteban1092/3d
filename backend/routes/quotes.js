@@ -29,7 +29,9 @@ router.post('/', authOptional, async (req, res) => {
     const discountPercent = Number(product.discount_percent) || 0;
     const discountedBase = base * (1 - discountPercent / 100);
     const iva = Number(product.iva_rate);
-    const shipping = delivery_type === 'local_chalco' ? 0 : Number(product.shipping_cost);
+    const shipping = delivery_type === 'local_chalco'
+      ? 0
+      : (Number(product.shipping_cost) || Number(process.env.SHIPPING_COST) || 90);
     const total = +(discountedBase + discountedBase * iva + shipping).toFixed(2);
 
     const userId = req.user ? req.user.id : null;

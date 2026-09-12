@@ -206,6 +206,10 @@ img { max-width: 100%; display: block; }
   box-shadow: 0 20px 50px rgba(126, 231, 255, 0.2);
 }
 
+.feed-grid .card:nth-child(2) { animation-delay: 80ms; }
+.feed-grid .card:nth-child(3) { animation-delay: 160ms; }
+.feed-grid .card:nth-child(4) { animation-delay: 240ms; }
+
 .card .card-img {
   width: 100%;
   aspect-ratio: 4/3;
@@ -361,6 +365,22 @@ img { max-width: 100%; display: block; }
 .field input:focus {
   border-color: var(--bg-glow-1);
   background: rgba(255,255,255,0.08);
+}
+
+.delivery-select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-border);
+  background: #11121f;
+  color: var(--text-main);
+  outline: none;
+  color-scheme: dark;
+}
+
+.delivery-select option {
+  background: #11121f;
+  color: #f2f4ff;
 }
 
 .field.password input { padding-right: 44px; }

@@ -84,7 +84,7 @@ router.post('/products', async (req, res) => {
   try {
     const {
       title, description, image_url, base_price,
-      discount_percent = 0, shipping_cost = 0,
+      discount_percent = 0, shipping_cost = Number(process.env.SHIPPING_COST) || 90,
       local_delivery_only = 0, category_id = null
     } = req.body;
 
