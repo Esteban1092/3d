@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const rateLimit = require('express-rate-limit');
-const pool = require('../config/db');
+const supabase = require('../config/db');
 const { sendMail, verificationEmailHtml, resetPasswordEmailHtml } = require('../utils/mailer');
 
 const router = express.Router();
@@ -48,23 +48,27 @@ router.post('/register', authLimiter, async (req, res) => {
       });
     }
 
-    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
-    if (existing.length > 0) {
+    const { data: existing, error: existingErr } = await supabase
+      .from('users').select('id').eq('email', email).maybeSingle();
+    if (existingErr) throw existingErr;
+    if (existing) {
       return res.status(409).json({ error: 'Ese correo ya está registrado.' });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const [result] = await pool.query(
-      'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
-      [name, email, passwordHash]
-    );
+    const { data: newUser, error: insertErr } = await supabase
+      .from('users')
+      .insert({ name, email, password_hash: passwordHash })
+      .select('id')
+      .single();
+    if (insertErr) throw insertErr;
 
     const token = uuidv4();
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-    await pool.query(
-      'INSERT INTO email_verifications (user_id, token, expires_at) VALUES (?, ?, ?)',
-      [result.insertId, token, expiresAt]
-    );
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24h
+    const { error: verifErr } = await supabase
+      .from('email_verifications')
+      .insert({ user_id: newUser.id, token, expires_at: expiresAt });
+    if (verifErr) throw verifErr;
 
     const link = `${process.env.FRONTEND_URL}/verify-email.html?token=${token}`;
     await sendMail({
@@ -88,16 +92,20 @@ router.get('/verify-email', async (req, res) => {
     const { token } = req.query;
     if (!token) return res.status(400).json({ error: 'Token faltante.' });
 
-    const [rows] = await pool.query(
-      'SELECT * FROM email_verifications WHERE token = ? AND expires_at > NOW()',
-      [token]
-    );
-    if (rows.length === 0) {
+    const { data: rows, error } = await supabase
+      .from('email_verifications')
+      .select('*')
+      .eq('token', token)
+      .gt('expires_at', new Date().toISOString());
+    if (error) throw error;
+    if (!rows || rows.length === 0) {
       return res.status(400).json({ error: 'Token inválido o expirado.' });
     }
 
-    await pool.query('UPDATE users SET is_verified = 1 WHERE id = ?', [rows[0].user_id]);
-    await pool.query('DELETE FROM email_verifications WHERE id = ?', [rows[0].id]);
+    const verification = rows[0];
+    const { error: updErr } = await supabase.from('users').update({ is_verified: true }).eq('id', verification.user_id);
+    if (updErr) throw updErr;
+    await supabase.from('email_verifications').delete().eq('id', verification.id);
 
     res.json({ message: 'Correo verificado correctamente. Ya puedes iniciar sesión.' });
   } catch (err) {
@@ -116,12 +124,12 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Correo y contraseña son obligatorios.' });
     }
 
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (rows.length === 0) {
+    const { data: user, error } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+    if (error) throw error;
+    if (!user) {
       return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
 
-    const user = rows[0];
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       return res.status(401).json({ error: 'Credenciales inválidas.' });
@@ -149,23 +157,20 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Correo obligatorio.' });
 
-    const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+    const { data: user, error } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
+    if (error) throw error;
 
     // Respuesta genérica: no revela si el correo existe o no (evita enumeración de usuarios)
     const genericResponse = { message: 'Si el correo existe, se envió un enlace de recuperación.' };
+    if (!user) return res.json(genericResponse);
 
-    if (rows.length === 0) {
-      return res.json(genericResponse);
-    }
-
-    const user = rows[0];
     const token = uuidv4();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1h
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1h
 
-    await pool.query(
-      'INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)',
-      [user.id, token, expiresAt]
-    );
+    const { error: insertErr } = await supabase
+      .from('password_resets')
+      .insert({ user_id: user.id, token, expires_at: expiresAt });
+    if (insertErr) throw insertErr;
 
     const link = `${process.env.FRONTEND_URL}/reset-password.html?token=${token}`;
     await sendMail({
@@ -196,18 +201,22 @@ router.post('/reset-password', authLimiter, async (req, res) => {
       });
     }
 
-    const [rows] = await pool.query(
-      'SELECT * FROM password_resets WHERE token = ? AND used = 0 AND expires_at > NOW()',
-      [token]
-    );
-    if (rows.length === 0) {
+    const { data: rows, error } = await supabase
+      .from('password_resets')
+      .select('*')
+      .eq('token', token)
+      .eq('used', false)
+      .gt('expires_at', new Date().toISOString());
+    if (error) throw error;
+    if (!rows || rows.length === 0) {
       return res.status(400).json({ error: 'Token inválido o expirado.' });
     }
 
     const reset = rows[0];
     const passwordHash = await bcrypt.hash(password, 10);
-    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, reset.user_id]);
-    await pool.query('UPDATE password_resets SET used = 1 WHERE id = ?', [reset.id]);
+    const { error: updErr } = await supabase.from('users').update({ password_hash: passwordHash }).eq('id', reset.user_id);
+    if (updErr) throw updErr;
+    await supabase.from('password_resets').update({ used: true }).eq('id', reset.id);
 
     res.json({ message: 'Contraseña actualizada. Ya puedes iniciar sesión.' });
   } catch (err) {

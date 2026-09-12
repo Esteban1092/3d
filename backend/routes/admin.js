@@ -4,7 +4,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
-const pool = require('../config/db');
+const supabase = require('../config/db');
 const adminAuth = require('../middleware/adminAuth');
 
 const router = express.Router();
@@ -60,12 +60,17 @@ router.post('/upload', (req, res) => {
 // ---------------------------------------------------------
 router.get('/products', async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      `SELECT p.*, u.name AS author_name
-       FROM products p JOIN users u ON u.id = p.user_id
-       ORDER BY p.created_at DESC`
-    );
-    res.json(rows);
+    const { data: products, error } = await supabase
+      .from('products').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+
+    const authorIds = [...new Set(products.map((p) => p.user_id))];
+    const { data: authors } = authorIds.length
+      ? await supabase.from('users').select('id, name').in('id', authorIds)
+      : { data: [] };
+    const authorMap = new Map((authors || []).map((a) => [a.id, a.name]));
+
+    res.json(products.map((p) => ({ ...p, author_name: authorMap.get(p.user_id) })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener los proyectos.' });
@@ -96,14 +101,18 @@ router.post('/products', async (req, res) => {
     const ivaRate = Number(process.env.IVA_RATE) || 0.16;
     const adminUserId = Number(process.env.ADMIN_USER_ID) || 1;
 
-    const [result] = await pool.query(
-      `INSERT INTO products
-       (user_id, category_id, title, description, image_url, base_price, discount_percent, iva_rate, shipping_cost, local_delivery_only)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [adminUserId, category_id, title, description || '', image_url, base_price, discount_percent, ivaRate, shipping_cost, local_delivery_only ? 1 : 0]
-    );
+    const { data, error } = await supabase
+      .from('products')
+      .insert({
+        user_id: adminUserId, category_id, title, description: description || '', image_url,
+        base_price, discount_percent, iva_rate: ivaRate, shipping_cost,
+        local_delivery_only: !!local_delivery_only
+      })
+      .select('id')
+      .single();
+    if (error) throw error;
 
-    res.status(201).json({ id: result.insertId, message: 'Proyecto publicado.' });
+    res.status(201).json({ id: data.id, message: 'Proyecto publicado.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al publicar el proyecto.' });
@@ -119,36 +128,33 @@ router.patch('/products/:id', async (req, res) => {
       'title', 'description', 'image_url', 'base_price',
       'discount_percent', 'shipping_cost', 'local_delivery_only', 'is_active', 'category_id'
     ];
-    const updates = [];
-    const values = [];
-
+    const updates = {};
     for (const field of allowedFields) {
-      if (req.body[field] !== undefined) {
-        updates.push(`${field} = ?`);
-        values.push(req.body[field]);
-      }
+      if (req.body[field] !== undefined) updates[field] = req.body[field];
     }
 
-    if (updates.length === 0) {
+    if (Object.keys(updates).length === 0) {
       return res.status(400).json({ error: 'No se enviaron campos para actualizar.' });
     }
-    if (req.body.discount_percent !== undefined) {
-      const d = Number(req.body.discount_percent);
+    if (updates.discount_percent !== undefined) {
+      const d = Number(updates.discount_percent);
       if (isNaN(d) || d < 0 || d > 100) {
         return res.status(400).json({ error: 'El descuento debe ser un porcentaje entre 0 y 100.' });
       }
     }
-    if (req.body.base_price !== undefined) {
-      const p = Number(req.body.base_price);
+    if (updates.base_price !== undefined) {
+      const p = Number(updates.base_price);
       if (isNaN(p) || p < 0) {
         return res.status(400).json({ error: 'El precio debe ser un número válido.' });
       }
     }
+    if (updates.local_delivery_only !== undefined) updates.local_delivery_only = !!updates.local_delivery_only;
+    if (updates.is_active !== undefined) updates.is_active = !!updates.is_active;
 
-    values.push(req.params.id);
-    const [result] = await pool.query(`UPDATE products SET ${updates.join(', ')} WHERE id = ?`, values);
-
-    if (result.affectedRows === 0) {
+    const { data, error } = await supabase
+      .from('products').update(updates).eq('id', req.params.id).select('id');
+    if (error) throw error;
+    if (!data || data.length === 0) {
       return res.status(404).json({ error: 'Proyecto no encontrado.' });
     }
     res.json({ message: 'Proyecto actualizado.' });
@@ -163,8 +169,9 @@ router.patch('/products/:id', async (req, res) => {
 // ---------------------------------------------------------
 router.delete('/products/:id', async (req, res) => {
   try {
-    const [result] = await pool.query('DELETE FROM products WHERE id = ?', [req.params.id]);
-    if (result.affectedRows === 0) {
+    const { data, error } = await supabase.from('products').delete().eq('id', req.params.id).select('id');
+    if (error) throw error;
+    if (!data || data.length === 0) {
       return res.status(404).json({ error: 'Proyecto no encontrado.' });
     }
     res.json({ message: 'Proyecto eliminado.' });

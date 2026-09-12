@@ -1,7 +1,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const rateLimit = require('express-rate-limit');
-const pool = require('../config/db');
+const supabase = require('../config/db');
 
 const router = express.Router();
 
@@ -12,10 +12,13 @@ const chatLimiter = rateLimit({
 });
 
 async function buildSystemPrompt() {
-  const [products] = await pool.query(
-    `SELECT title, base_price, discount_percent, shipping_cost, local_delivery_only
-     FROM products WHERE is_active = 1 ORDER BY created_at DESC LIMIT 30`
-  );
+  const { data: products, error } = await supabase
+    .from('products')
+    .select('title, base_price, discount_percent, shipping_cost, local_delivery_only')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (error) throw error;
 
   const catalogText = products.length
     ? products

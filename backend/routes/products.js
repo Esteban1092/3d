@@ -1,5 +1,5 @@
 const express = require('express');
-const pool = require('../config/db');
+const supabase = require('../config/db');
 const { authRequired, authOptional } = require('../middleware/auth');
 
 const router = express.Router();
@@ -23,24 +23,53 @@ function withPricing(product) {
   };
 }
 
+// Agrega autor, conteos de likes/comentarios y si el usuario actual dio like
+async function enrichProducts(products, userId) {
+  const ids = products.map((p) => p.id);
+  if (ids.length === 0) return [];
+
+  const authorIds = [...new Set(products.map((p) => p.user_id))];
+  const [{ data: authors }, { data: likeRows }, { data: commentRows }, { data: myLikes }] = await Promise.all([
+    supabase.from('users').select('id, name, avatar_url').in('id', authorIds),
+    supabase.from('likes').select('product_id').in('product_id', ids),
+    supabase.from('comments').select('product_id').in('product_id', ids),
+    userId ? supabase.from('likes').select('product_id').eq('user_id', userId).in('product_id', ids) : { data: [] }
+  ]);
+
+  const authorMap = new Map((authors || []).map((a) => [a.id, a]));
+  const likeCounts = new Map();
+  (likeRows || []).forEach((l) => likeCounts.set(l.product_id, (likeCounts.get(l.product_id) || 0) + 1));
+  const commentCounts = new Map();
+  (commentRows || []).forEach((c) => commentCounts.set(c.product_id, (commentCounts.get(c.product_id) || 0) + 1));
+  const myLikedIds = new Set((myLikes || []).map((l) => l.product_id));
+
+  return products.map((p) => {
+    const author = authorMap.get(p.user_id) || {};
+    return withPricing({
+      ...p,
+      author_name: author.name,
+      author_avatar: author.avatar_url,
+      likes_count: likeCounts.get(p.id) || 0,
+      comments_count: commentCounts.get(p.id) || 0,
+      liked_by_me: myLikedIds.has(p.id)
+    });
+  });
+}
+
 // ---------------------------------------------------------
 // GET /api/products  (feed tipo red social)
 // ---------------------------------------------------------
 router.get('/', authOptional, async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : 0;
-    const [rows] = await pool.query(
-      `SELECT p.*, u.name AS author_name, u.avatar_url AS author_avatar,
-              (SELECT COUNT(*) FROM likes l WHERE l.product_id = p.id) AS likes_count,
-              (SELECT COUNT(*) FROM comments c WHERE c.product_id = p.id) AS comments_count,
-              EXISTS(SELECT 1 FROM likes l2 WHERE l2.product_id = p.id AND l2.user_id = ?) AS liked_by_me
-       FROM products p
-       JOIN users u ON u.id = p.user_id
-       WHERE p.is_active = 1
-       ORDER BY p.created_at DESC`,
-      [userId]
-    );
-    res.json(rows.map(withPricing));
+    const userId = req.user ? req.user.id : null;
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    res.json(await enrichProducts(products, userId));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener los proyectos.' });
@@ -52,27 +81,34 @@ router.get('/', authOptional, async (req, res) => {
 // ---------------------------------------------------------
 router.get('/:id', authOptional, async (req, res) => {
   try {
-    const userId = req.user ? req.user.id : 0;
-    const [rows] = await pool.query(
-      `SELECT p.*, u.name AS author_name, u.avatar_url AS author_avatar,
-              (SELECT COUNT(*) FROM likes l WHERE l.product_id = p.id) AS likes_count,
-              (SELECT COUNT(*) FROM comments c WHERE c.product_id = p.id) AS comments_count,
-              EXISTS(SELECT 1 FROM likes l2 WHERE l2.product_id = p.id AND l2.user_id = ?) AS liked_by_me
-       FROM products p
-       JOIN users u ON u.id = p.user_id
-       WHERE p.id = ?`,
-      [userId, req.params.id]
-    );
-    if (rows.length === 0) return res.status(404).json({ error: 'Proyecto no encontrado.' });
+    const userId = req.user ? req.user.id : null;
+    const { data: product, error } = await supabase
+      .from('products').select('*').eq('id', req.params.id).maybeSingle();
+    if (error) throw error;
+    if (!product) return res.status(404).json({ error: 'Proyecto no encontrado.' });
 
-    const [comments] = await pool.query(
-      `SELECT c.id, c.content, c.created_at, u.name AS author_name, u.avatar_url AS author_avatar
-       FROM comments c JOIN users u ON u.id = c.user_id
-       WHERE c.product_id = ? ORDER BY c.created_at ASC`,
-      [req.params.id]
-    );
+    const [enriched] = await enrichProducts([product], userId);
 
-    res.json({ ...withPricing(rows[0]), comments });
+    const { data: comments, error: commentsErr } = await supabase
+      .from('comments')
+      .select('id, content, created_at, user_id')
+      .eq('product_id', req.params.id)
+      .order('created_at', { ascending: true });
+    if (commentsErr) throw commentsErr;
+
+    const commenterIds = [...new Set((comments || []).map((c) => c.user_id))];
+    const { data: commenters } = commenterIds.length
+      ? await supabase.from('users').select('id, name, avatar_url').in('id', commenterIds)
+      : { data: [] };
+    const commenterMap = new Map((commenters || []).map((u) => [u.id, u]));
+
+    const commentsWithAuthor = (comments || []).map((c) => ({
+      ...c,
+      author_name: commenterMap.get(c.user_id)?.name,
+      author_avatar: commenterMap.get(c.user_id)?.avatar_url
+    }));
+
+    res.json({ ...enriched, comments: commentsWithAuthor });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener el proyecto.' });
@@ -91,17 +127,17 @@ router.get('/:id', authOptional, async (req, res) => {
 router.post('/:id/like', authRequired, async (req, res) => {
   try {
     const productId = req.params.id;
-    const [existing] = await pool.query(
-      'SELECT id FROM likes WHERE user_id = ? AND product_id = ?',
-      [req.user.id, productId]
-    );
+    const { data: existing, error } = await supabase
+      .from('likes').select('id').eq('user_id', req.user.id).eq('product_id', productId).maybeSingle();
+    if (error) throw error;
 
-    if (existing.length > 0) {
-      await pool.query('DELETE FROM likes WHERE id = ?', [existing[0].id]);
+    if (existing) {
+      await supabase.from('likes').delete().eq('id', existing.id);
       return res.json({ liked: false });
     }
 
-    await pool.query('INSERT INTO likes (user_id, product_id) VALUES (?, ?)', [req.user.id, productId]);
+    const { error: insertErr } = await supabase.from('likes').insert({ user_id: req.user.id, product_id: productId });
+    if (insertErr) throw insertErr;
     res.json({ liked: true });
   } catch (err) {
     console.error(err);
@@ -122,12 +158,14 @@ router.post('/:id/comments', authRequired, async (req, res) => {
       return res.status(400).json({ error: 'El comentario es demasiado largo.' });
     }
 
-    const [result] = await pool.query(
-      'INSERT INTO comments (user_id, product_id, content) VALUES (?, ?, ?)',
-      [req.user.id, req.params.id, content.trim()]
-    );
+    const { data, error } = await supabase
+      .from('comments')
+      .insert({ user_id: req.user.id, product_id: req.params.id, content: content.trim() })
+      .select('id')
+      .single();
+    if (error) throw error;
 
-    res.status(201).json({ id: result.insertId, message: 'Comentario agregado.' });
+    res.status(201).json({ id: data.id, message: 'Comentario agregado.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al agregar el comentario.' });
@@ -135,3 +173,4 @@ router.post('/:id/comments', authRequired, async (req, res) => {
 });
 
 module.exports = router;
+
