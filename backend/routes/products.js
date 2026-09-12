@@ -82,35 +82,8 @@ router.get('/:id', authOptional, async (req, res) => {
 // ---------------------------------------------------------
 // POST /api/products  (publicar un proyecto 3D)
 // ---------------------------------------------------------
-router.post('/', authRequired, async (req, res) => {
-  try {
-    const {
-      title, description, image_url, base_price,
-      shipping_cost = 0, local_delivery_only = 0, category_id = null
-    } = req.body;
-
-    if (!title || !image_url || base_price === undefined) {
-      return res.status(400).json({ error: 'Título, imagen y precio son obligatorios.' });
-    }
-    if (isNaN(Number(base_price)) || Number(base_price) < 0) {
-      return res.status(400).json({ error: 'El precio debe ser un número válido.' });
-    }
-
-    const ivaRate = Number(process.env.IVA_RATE) || 0.16;
-
-    const [result] = await pool.query(
-      `INSERT INTO products
-       (user_id, category_id, title, description, image_url, base_price, iva_rate, shipping_cost, local_delivery_only)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [req.user.id, category_id, title, description || '', image_url, base_price, ivaRate, shipping_cost, local_delivery_only ? 1 : 0]
-    );
-
-    res.status(201).json({ id: result.insertId, message: 'Proyecto publicado.' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al publicar el proyecto.' });
-  }
-});
+// La creación de proyectos es exclusiva del panel de administración (ver routes/admin.js).
+// Los usuarios normales solo pueden ver, dar like, comentar y cotizar.
 
 // ---------------------------------------------------------
 // POST /api/products/:id/like  (toggle like)
