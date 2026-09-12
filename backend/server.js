@@ -25,6 +25,13 @@ app.use('/api/quotes', quoteRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Sirve el frontend estático desde el mismo servicio (útil en Render con un solo Web Service)
+const frontendDir = path.join(__dirname, '..', 'frontend');
+app.use(express.static(frontendDir));
+app.get(/^(?!\/api|\/uploads).*/, (req, res) => {
+  res.sendFile(path.join(frontendDir, 'index.html'));
+});
+
 // Manejador de errores genérico (evita filtrar detalles internos al cliente)
 app.use((err, req, res, next) => {
   console.error(err);
