@@ -13,7 +13,7 @@ const chatLimiter = rateLimit({
 
 async function buildSystemPrompt() {
   const [products] = await pool.query(
-    `SELECT title, base_price, shipping_cost, local_delivery_only
+    `SELECT title, base_price, discount_percent, shipping_cost, local_delivery_only
      FROM products WHERE is_active = 1 ORDER BY created_at DESC LIMIT 30`
   );
 
@@ -21,9 +21,11 @@ async function buildSystemPrompt() {
     ? products
         .map((p) => {
           const iva = Number(process.env.IVA_RATE) || 0.16;
-          const totalLocal = +(p.base_price * (1 + iva)).toFixed(2);
-          const totalEnvio = +(p.base_price * (1 + iva) + Number(p.shipping_cost)).toFixed(2);
-          return `- ${p.title}: $${Number(p.base_price).toFixed(2)} MXN + IVA. Entrega local Chalco: $${totalLocal} MXN. Con envío: $${totalEnvio} MXN.`;
+          const discountedBase = Number(p.base_price) * (1 - (Number(p.discount_percent) || 0) / 100);
+          const totalLocal = +(discountedBase * (1 + iva)).toFixed(2);
+          const totalEnvio = +(discountedBase * (1 + iva) + Number(p.shipping_cost)).toFixed(2);
+          const discountText = p.discount_percent > 0 ? ` (¡${p.discount_percent}% de descuento aplicado!)` : '';
+          return `- ${p.title}: $${Number(p.base_price).toFixed(2)} MXN + IVA${discountText}. Entrega local Chalco: $${totalLocal} MXN. Con envío: $${totalEnvio} MXN.`;
         })
         .join('\n')
     : 'Aún no hay proyectos publicados en el catálogo.';

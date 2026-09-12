@@ -72,6 +72,7 @@ CREATE TABLE products (
   description         TEXT,
   image_url           VARCHAR(255) NOT NULL,
   base_price          NUMERIC(10,2) NOT NULL CHECK (base_price >= 0),
+  discount_percent    NUMERIC(5,2)  NOT NULL DEFAULT 0.00 CHECK (discount_percent BETWEEN 0 AND 100),
   iva_rate            NUMERIC(4,3)  NOT NULL DEFAULT 0.160,
   shipping_cost       NUMERIC(10,2) NOT NULL DEFAULT 0.00,
   local_delivery_only BOOLEAN NOT NULL DEFAULT false,
@@ -84,7 +85,7 @@ CREATE TRIGGER trg_products_updated_at
 BEFORE UPDATE ON products
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
--- total = base_price * (1 + iva_rate) + shipping_cost (se calcula en la app)
+-- total = base_price * (1 - discount_percent/100) * (1 + iva_rate) + shipping_cost (se calcula en la app)
 
 -- ---------------------------------------------------------
 -- Likes

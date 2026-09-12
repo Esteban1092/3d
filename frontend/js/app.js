@@ -12,8 +12,9 @@ function productCardHtml(p) {
         <h3>${p.title}</h3>
         <p class="desc">${p.description || ''}</p>
         ${p.local_delivery_only ? '<span class="badge">Solo entrega local · Chalco</span>' : '<span class="badge">Con opción de envío</span>'}
+        ${p.discount_percent > 0 ? `<span class="badge" style="margin-left:6px; border-color:#ff5f9e; color:#ff9fc4;">-${p.discount_percent}% OFF</span>` : ''}
         <div class="price-box">
-          <span>Precio base: ${fmtMoney(p.base_price)}</span>
+          <span>Precio base: ${p.discount_percent > 0 ? `<s>${fmtMoney(p.base_price)}</s> ${fmtMoney(p.discounted_base_price)}` : fmtMoney(p.base_price)}</span>
           <span>IVA: ${fmtMoney(p.iva_amount)}</span>
           ${p.shipping_cost > 0 ? `<span>Envío: ${fmtMoney(p.shipping_cost)}</span>` : '<span>Envío: incluido (entrega local)</span>'}
           <span class="total">Total: ${fmtMoney(p.total_price)}</span>

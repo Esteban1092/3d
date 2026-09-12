@@ -61,6 +61,7 @@ CREATE TABLE products (
   description         TEXT,
   image_url           VARCHAR(255) NOT NULL,
   base_price          DECIMAL(10,2) NOT NULL,      -- precio del producto sin envío ni iva
+  discount_percent    DECIMAL(5,2)  NOT NULL DEFAULT 0.00, -- % de descuento sobre el precio base
   iva_rate            DECIMAL(4,3)  NOT NULL DEFAULT 0.160, -- 16% IVA México por defecto
   shipping_cost       DECIMAL(10,2) NOT NULL DEFAULT 0.00,  -- costo de envío foráneo
   local_delivery_only TINYINT(1)   NOT NULL DEFAULT 0,      -- 1 = solo entrega local Chalco
@@ -71,9 +72,9 @@ CREATE TABLE products (
   FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
--- Columna calculada de solo lectura para precio total (precio + iva + envío)
+-- Columna calculada de solo lectura para precio total (precio con descuento + iva + envío)
 -- (se calcula en la app; se deja documentado aquí)
--- total = base_price * (1 + iva_rate) + shipping_cost
+-- total = base_price * (1 - discount_percent/100) * (1 + iva_rate) + shipping_cost
 
 -- ---------------------------------------------------------
 -- Likes

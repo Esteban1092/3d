@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 
@@ -7,11 +8,13 @@ const productRoutes = require('./routes/products');
 const donationRoutes = require('./routes/donations');
 const quoteRoutes = require('./routes/quotes');
 const chatbotRoutes = require('./routes/chatbot');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 
 app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
 app.use(express.json({ limit: '1mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
@@ -20,6 +23,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Manejador de errores genérico (evita filtrar detalles internos al cliente)
 app.use((err, req, res, next) => {

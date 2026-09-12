@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Market · Admin</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="navbar glass">
+  <a class="brand" href="index.html"><span class="dot"></span> 3D Market · Admin</a>
+  <nav><a href="index.html">Volver al sitio</a></nav>
+</header>
+
+<main class="container">
+
+  <!-- Puerta de acceso con el código de administrador -->
+  <section id="adminGate" class="auth-wrapper" style="min-height:40vh;">
+    <div class="auth-card glass">
+      <h2>Panel de administración</h2>
+      <p class="subtitle">Ingresa tu código de administrador para continuar.</p>
+      <form id="adminGateForm">
+        <div class="field password">
+          <label for="adminCodeInput">Código</label>
+          <input type="password" id="adminCodeInput" required inputmode="numeric">
+          <button type="button" class="toggle-eye" data-target="adminCodeInput">👁️</button>
+        </div>
+        <button class="btn block" type="submit">Entrar</button>
+        <div class="form-msg" id="adminGateMsg"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Panel real (oculto hasta validar el código) -->
+  <section id="adminPanel" style="display:none;">
+    <h1 class="page-title">Administrar proyectos</h1>
+    <p class="page-subtitle">Sube imágenes, define precios y descuentos, o elimina proyectos.</p>
+
+    <form id="adminCreateForm" class="glass" style="max-width:640px; padding:26px; margin-bottom:32px;">
+      <h3 style="margin-top:0;">Nuevo proyecto</h3>
+      <div class="field">
+        <label>Título</label>
+        <input id="acTitle" required>
+      </div>
+      <div class="field">
+        <label>Descripción</label>
+        <input id="acDescription">
+      </div>
+      <div class="field">
+        <label>Imagen</label>
+        <input type="file" id="acImageFile" accept="image/*" required>
+        <div id="acImagePreview" style="margin-top:10px;"></div>
+      </div>
+      <div class="field">
+        <label>Precio base (MXN, sin IVA)</label>
+        <input id="acPrice" type="number" min="0" step="0.01" required>
+      </div>
+      <div class="field">
+        <label>Descuento (%)</label>
+        <input id="acDiscount" type="number" min="0" max="100" step="0.01" value="0">
+      </div>
+      <div class="field" style="display:flex; align-items:center; gap:10px;">
+        <input type="checkbox" id="acLocalOnly" style="width:auto;">
+        <label style="margin:0;">Solo entrega local (Centro de Chalco, EDOMEX)</label>
+      </div>
+      <div class="field" id="acShippingField">
+        <label>Costo de envío (MXN)</label>
+        <input id="acShipping" type="number" min="0" step="0.01" value="0">
+      </div>
+      <button class="btn block" type="submit">Publicar proyecto</button>
+      <div class="form-msg" id="adminCreateMsg"></div>
+    </form>
+
+    <h2 class="page-title" style="font-size:1.3rem;">Proyectos existentes</h2>
+    <div id="adminProductsList" class="feed-grid"></div>
+  </section>
+
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

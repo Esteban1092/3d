@@ -6,13 +6,17 @@ const router = express.Router();
 
 function withPricing(product) {
   const base = Number(product.base_price);
+  const discountPercent = Number(product.discount_percent) || 0;
   const iva = Number(product.iva_rate);
   const shipping = product.local_delivery_only ? 0 : Number(product.shipping_cost);
-  const ivaAmount = +(base * iva).toFixed(2);
-  const total = +(base + ivaAmount + shipping).toFixed(2);
+  const discountedBase = +(base * (1 - discountPercent / 100)).toFixed(2);
+  const ivaAmount = +(discountedBase * iva).toFixed(2);
+  const total = +(discountedBase + ivaAmount + shipping).toFixed(2);
   return {
     ...product,
     base_price: base,
+    discount_percent: discountPercent,
+    discounted_base_price: discountedBase,
     iva_amount: ivaAmount,
     shipping_cost: shipping,
     total_price: total
