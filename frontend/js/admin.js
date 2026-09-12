@@ -156,6 +156,10 @@ function adminProductCardHtml(p) {
           <input type="checkbox" class="edit-active" style="width:auto;" ${p.is_active ? 'checked' : ''}>
           <label style="margin:0;">Activo (visible en el sitio)</label>
         </div>
+        <div class="field">
+          <label>Cambiar imagen</label>
+          <input type="file" class="edit-image-file" accept="image/*">
+        </div>
         <div class="card-actions">
           <button class="btn secondary save-btn" data-id="${p.id}">Guardar</button>
           <button class="icon-btn delete-btn" data-id="${p.id}">🗑️ Eliminar</button>
@@ -191,9 +195,19 @@ function attachAdminProductEvents() {
       const card = btn.closest('.card');
       const msg = document.getElementById(`rowMsg-${btn.dataset.id}`);
       try {
+        const imageFile = card.querySelector('.edit-image-file').files[0];
+        let image_url;
+        if (imageFile) {
+          const formData = new FormData();
+          formData.append('image', imageFile);
+          const uploadRes = await adminFetch('/admin/upload', { method: 'POST', body: formData });
+          image_url = uploadRes.image_url;
+        }
+
         await adminFetch(`/admin/products/${btn.dataset.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
+            ...(image_url ? { image_url } : {}),
             base_price: card.querySelector('.edit-price').value,
             discount_percent: card.querySelector('.edit-discount').value,
             shipping_cost: card.querySelector('.edit-shipping').value,
@@ -203,6 +217,7 @@ function attachAdminProductEvents() {
         });
         msg.textContent = 'Guardado ✅';
         msg.className = 'form-msg success';
+        loadAdminProducts();
       } catch (err) {
         msg.textContent = err.message;
         msg.className = 'form-msg error';
