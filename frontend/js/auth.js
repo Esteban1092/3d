@@ -7,7 +7,8 @@ function setupPasswordToggle() {
       if (!input) return;
       const isHidden = input.type === 'password';
       input.type = isHidden ? 'text' : 'password';
-      btn.textContent = isHidden ? '🙈' : '👁️';
+      btn.classList.toggle('is-visible', isHidden);
+      btn.setAttribute('aria-label', isHidden ? 'Ocultar contraseña' : 'Mostrar contraseña');
     });
   });
 }

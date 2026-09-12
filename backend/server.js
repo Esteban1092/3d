@@ -5,7 +5,6 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
-const donationRoutes = require('./routes/donations');
 const quoteRoutes = require('./routes/quotes');
 const adminRoutes = require('./routes/admin');
 
@@ -19,7 +18,6 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/donations', donationRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/admin', adminRoutes);
 

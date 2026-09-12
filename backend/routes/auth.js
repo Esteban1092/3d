@@ -182,6 +182,9 @@ router.post('/forgot-password', authLimiter, async (req, res) => {
     res.json(genericResponse);
   } catch (err) {
     console.error(err);
+    if (err.code === 'MAIL_NOT_CONFIGURED' || err.code === 'EAUTH') {
+      return res.status(503).json({ error: 'El correo no está configurado en el servidor. Agrega GMAIL_USER y GMAIL_APP_PASSWORD en Render.' });
+    }
     res.status(500).json({ error: 'Error al procesar la solicitud.' });
   }
 });

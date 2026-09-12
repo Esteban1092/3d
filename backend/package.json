@@ -1,7 +1,7 @@
 {
   "name": "3d-market-backend",
   "version": "1.0.0",
-  "description": "Backend de 3D Market: auth, productos, likes, comentarios, donaciones y chatbot",
+  "description": "Backend de 3D Market: auth, productos, likes, comentarios y cotizaciones",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

@@ -10,6 +10,12 @@ const transporter = nodemailer.createTransport({
 });
 
 async function sendMail({ to, subject, html }) {
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD.includes('xxxx')) {
+    const error = new Error('Correo no configurado: agrega GMAIL_USER y GMAIL_APP_PASSWORD en Render.');
+    error.code = 'MAIL_NOT_CONFIGURED';
+    throw error;
+  }
+
   return transporter.sendMail({
     from: `"3D Market" <${process.env.GMAIL_USER}>`,
     to,

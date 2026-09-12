@@ -1,6 +1,6 @@
 # 3D Market
 
-Red social / marketplace de proyectos 3D con likes, comentarios, cotización de envíos (con IVA), donaciones, login seguro y chatbot con IA. Diseño "liquid glass" responsive (móvil, tablet y escritorio).
+Red social / marketplace de proyectos 3D con likes, comentarios, cotización de envíos (con IVA) y login seguro. Diseño "liquid glass" responsive (móvil, tablet y escritorio).
 
 ## ⚠️ Seguridad — importante antes de empezar
 
@@ -62,8 +62,7 @@ Edita `frontend/js/config.js` si tu backend corre en otra URL/puerto.
 - **Feed tipo red social**: cada proyecto 3D tiene imagen, descripción, precio base + IVA + envío, likes y comentarios.
 - **Reglas de envío**: entrega local gratis solo en el **Centro de Chalco, EDOMEX**; cualquier otra entrega se cobra como envío.
 - **Cotización**: formulario que calcula el total y genera un enlace directo de WhatsApp al **55 2947 6336**.
-- **Donaciones**: formulario para registrar la intención de donar (para cobros reales, integra una pasarela de pago como Stripe o Mercado Pago).
-- **Chatbot con IA** (vía OpenRouter): conoce el catálogo, las reglas de precios/envío/IVA, el área de entrega local y el número de WhatsApp.
+- **Cotizaciones**: el cliente elige entrega local o envío y recibe un enlace directo a WhatsApp.
 - **Diseño "liquid glass"**: navbar flotante con blur y animaciones, tarjetas con glassmorphism, fondo animado, todo responsive (celular, tablet, escritorio).
 
 ## Pendientes recomendados para producción
