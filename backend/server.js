@@ -6,6 +6,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const quoteRoutes = require('./routes/quotes');
+const suggestionRoutes = require('./routes/suggestions');
 const adminRoutes = require('./routes/admin');
 
 const app = express();
@@ -19,6 +20,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/quotes', quoteRoutes);
+app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Sirve el frontend estático desde el mismo servicio (útil en Render con un solo Web Service)

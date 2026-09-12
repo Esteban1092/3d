@@ -30,21 +30,65 @@ function productCardHtml(p) {
     </article>`;
 }
 
+let allProducts = [];
+
+function renderFeed(products) {
+  const grid = document.getElementById('feedGrid');
+  const emptyState = document.getElementById('emptyState');
+  if (!grid) return;
+
+  grid.innerHTML = products.map(productCardHtml).join('');
+  if (emptyState) emptyState.hidden = products.length > 0;
+  if (products.length > 0) attachFeedEvents();
+}
+
 async function loadFeed() {
   const grid = document.getElementById('feedGrid');
   if (!grid) return;
 
   try {
-    const products = await API.request('/products', { auth: true });
-    if (products.length === 0) {
-      grid.innerHTML = '<p class="page-subtitle">Aún no hay proyectos publicados. ¡Sé el primero!</p>';
-      return;
-    }
-    grid.innerHTML = products.map(productCardHtml).join('');
-    attachFeedEvents();
+    allProducts = await API.request('/products', { auth: true });
+    renderFeed(allProducts);
   } catch (err) {
     grid.innerHTML = `<p class="form-msg error" style="display:block">${err.message}</p>`;
   }
+}
+
+function initCatalogSearch() {
+  const input = document.getElementById('productSearch');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    const query = input.value.trim().toLowerCase();
+    const filtered = allProducts.filter((product) =>
+      `${product.title} ${product.description || ''}`.toLowerCase().includes(query)
+    );
+    renderFeed(filtered);
+  });
+}
+
+function initSuggestionForm() {
+  const form = document.getElementById('suggestionForm');
+  if (!form) return;
+  const msg = document.getElementById('suggestionMsg');
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    try {
+      const data = await API.request('/suggestions', {
+        method: 'POST',
+        body: {
+          name: document.getElementById('suggestionName').value,
+          email: document.getElementById('suggestionEmail').value,
+          message: document.getElementById('suggestionMessage').value
+        }
+      });
+      msg.textContent = data.message;
+      msg.className = 'form-msg success';
+      form.reset();
+    } catch (err) {
+      msg.textContent = err.message;
+      msg.className = 'form-msg error';
+    }
+  });
 }
 
 function attachFeedEvents() {
@@ -131,5 +175,7 @@ function initQuoteModal() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadFeed();
+  initCatalogSearch();
+  initSuggestionForm();
   initQuoteModal();
 });

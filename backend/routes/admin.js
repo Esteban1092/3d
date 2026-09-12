@@ -1,6 +1,4 @@
 const express = require('express');
-const path = require('path');
-const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
 const rateLimit = require('express-rate-limit');
@@ -21,21 +19,10 @@ router.use(adminLimiter, adminAuth);
 // ---------------------------------------------------------
 // Subida de imágenes
 // ---------------------------------------------------------
-const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
-fs.mkdirSync(uploadsDir, { recursive: true });
-
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);
-  }
-});
-
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     if (!ALLOWED_TYPES.includes(file.mimetype)) {
@@ -45,14 +32,26 @@ const upload = multer({
   }
 });
 
-router.post('/upload', (req, res) => {
-  upload.single('image')(req, res, (err) => {
-    if (err) return res.status(400).json({ error: err.message });
+router.post('/upload', upload.single('image'), async (req, res) => {
+  try {
     if (!req.file) return res.status(400).json({ error: 'No se recibió ninguna imagen.' });
 
-    const publicUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
-    res.status(201).json({ image_url: publicUrl });
-  });
+    const ext = req.file.originalname.split('.').pop().toLowerCase();
+    const filename = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`;
+    const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'product-images';
+    const { error } = await supabase.storage.from(bucket).upload(filename, req.file.buffer, {
+      contentType: req.file.mimetype,
+      cacheControl: '31536000',
+      upsert: false
+    });
+    if (error) throw error;
+
+    const { data } = supabase.storage.from(bucket).getPublicUrl(filename);
+    res.status(201).json({ image_url: data.publicUrl });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'No se pudo guardar la imagen en Supabase Storage.' });
+  }
 });
 
 // ---------------------------------------------------------
@@ -178,6 +177,40 @@ router.delete('/products/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al eliminar el proyecto.' });
+  }
+});
+
+router.get('/suggestions', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('suggestions')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'No se pudieron cargar los consejos.' });
+  }
+});
+
+router.patch('/suggestions/:id', async (req, res) => {
+  try {
+    const allowed = ['nuevo', 'leido', 'archivado'];
+    if (!allowed.includes(req.body.status)) {
+      return res.status(400).json({ error: 'Estado de consejo inválido.' });
+    }
+    const { data, error } = await supabase
+      .from('suggestions')
+      .update({ status: req.body.status })
+      .eq('id', req.params.id)
+      .select('id')
+      .single();
+    if (error) throw error;
+    res.json({ id: data.id, message: 'Consejo actualizado.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'No se pudo actualizar el consejo.' });
   }
 });
 

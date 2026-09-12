@@ -25,7 +25,31 @@
   <h1 class="page-title">Catálogo de proyectos 3D</h1>
   <p class="page-subtitle">Explora, dale like, comenta y cotiza los proyectos de nuestra comunidad. Entrega local sin costo en el Centro de Chalco, EDOMEX. Envíos a domicilio con costo adicional.</p>
 
+  <div class="catalog-toolbar glass">
+    <label for="productSearch">Buscar en el catálogo</label>
+    <input id="productSearch" type="search" placeholder="Busca una figura o proyecto...">
+  </div>
   <section id="feedGrid" class="feed-grid"></section>
+  <section id="emptyState" class="empty-state glass" hidden>
+    <div class="empty-printer" aria-hidden="true">🖨️</div>
+    <h2>Ups, no existe</h2>
+    <p>No encontramos esa figura. Puedes dejar un consejo y pedirla para la próxima colección.</p>
+    <a class="btn secondary" href="#communitySuggestions">Pedir una figura</a>
+  </section>
+
+  <section id="communitySuggestions" class="suggestions-panel glass">
+    <h2>La comunidad manda</h2>
+    <p>¿Qué figura te gustaría ver? Déjanos tu consejo.</p>
+    <form id="suggestionForm">
+      <div class="suggestion-fields">
+        <input id="suggestionName" placeholder="Tu nombre (opcional)">
+        <input id="suggestionEmail" type="email" placeholder="Correo (opcional)">
+      </div>
+      <textarea id="suggestionMessage" maxlength="1000" placeholder="Quiero ver una figura de..." required></textarea>
+      <button class="btn" type="submit">Enviar consejo</button>
+      <div class="form-msg" id="suggestionMsg"></div>
+    </form>
+  </section>
 </main>
 
 <footer class="footer">

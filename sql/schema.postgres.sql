@@ -9,6 +9,7 @@
 -- Limpia cualquier intento anterior (p.ej. el esquema basado en Supabase Auth)
 -- que no coincide con lo que usa el backend actual.
 DROP TABLE IF EXISTS chatbot_messages CASCADE;
+DROP TABLE IF EXISTS suggestions CASCADE;
 DROP TABLE IF EXISTS quote_requests CASCADE;
 DROP TABLE IF EXISTS donations CASCADE;
 DROP TABLE IF EXISTS comments CASCADE;
@@ -118,6 +119,15 @@ CREATE TABLE chatbot_messages (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TABLE suggestions (
+  id          BIGSERIAL PRIMARY KEY,
+  name        VARCHAR(100),
+  email       VARCHAR(150),
+  message     VARCHAR(1000) NOT NULL,
+  status      VARCHAR(20) NOT NULL DEFAULT 'nuevo' CHECK (status IN ('nuevo', 'leido', 'archivado')),
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- El backend usa la service role key (bypassa RLS), así que dejamos RLS
 -- activado con "sin políticas" para bloquear cualquier acceso directo
 -- con la anon key desde el navegador.
@@ -131,6 +141,10 @@ ALTER TABLE comments             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE donations            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE quote_requests        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chatbot_messages       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE suggestions            ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "suggestions_insert_public" ON suggestions
+  FOR INSERT WITH CHECK (true);
 
 -- Datos base
 INSERT INTO categories (name) VALUES
@@ -143,3 +157,7 @@ INSERT INTO users (id, name, email, password_hash, role, is_verified)
 VALUES (1, 'Admin 3D Market', 'admin@3dmarket.com', 'no-login-desde-este-usuario', 'admin', true)
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('users','id'), GREATEST((SELECT MAX(id) FROM users), 1));
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('product-images', 'product-images', true)
+ON CONFLICT (id) DO UPDATE SET public = true;

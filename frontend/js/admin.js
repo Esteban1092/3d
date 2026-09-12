@@ -29,6 +29,7 @@ function showAdminPanel() {
   document.getElementById('adminGate').style.display = 'none';
   document.getElementById('adminPanel').style.display = 'block';
   loadAdminProducts();
+  loadAdminSuggestions();
 }
 
 async function tryStoredCode() {
@@ -236,6 +237,41 @@ function attachAdminProductEvents() {
       }
     });
   });
+}
+
+function suggestionHtml(suggestion) {
+  const date = new Date(suggestion.created_at).toLocaleDateString('es-MX');
+  return `<article class="suggestion-item glass">
+    <div class="suggestion-meta"><strong>${suggestion.name || 'Anónimo'}</strong><span>${date}</span></div>
+    ${suggestion.email ? `<a href="mailto:${suggestion.email}">${suggestion.email}</a>` : ''}
+    <p>${suggestion.message}</p>
+    <select class="suggestion-status" data-id="${suggestion.id}">
+      <option value="nuevo" ${suggestion.status === 'nuevo' ? 'selected' : ''}>Nuevo</option>
+      <option value="leido" ${suggestion.status === 'leido' ? 'selected' : ''}>Leído</option>
+      <option value="archivado" ${suggestion.status === 'archivado' ? 'selected' : ''}>Archivado</option>
+    </select>
+  </article>`;
+}
+
+async function loadAdminSuggestions() {
+  const list = document.getElementById('adminSuggestionsList');
+  if (!list) return;
+  try {
+    const suggestions = await adminFetch('/admin/suggestions');
+    list.innerHTML = suggestions.length
+      ? suggestions.map(suggestionHtml).join('')
+      : '<p class="page-subtitle">Todavía no hay consejos de la comunidad.</p>';
+    document.querySelectorAll('.suggestion-status').forEach((select) => {
+      select.addEventListener('change', async () => {
+        await adminFetch(`/admin/suggestions/${select.dataset.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: select.value })
+        });
+      });
+    });
+  } catch (err) {
+    list.innerHTML = `<p class="form-msg error" style="display:block">${err.message}</p>`;
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
